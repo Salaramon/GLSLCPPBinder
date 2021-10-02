@@ -1,0 +1,19 @@
+
+Halt_On_Error = false
+Generate_Log = true
+
+Shader_Files = [ 
+"deferred_frag.glsl", 
+"deferred_vertex.glsl", 
+"geometry_frag.glsl", 
+"geometry_vertex.glsl", 
+"lightsource_frag.glsl", 
+"lightsource_vertex.glsl", 
+"lightsource_frag_trans.glsl", 
+"lightsource_vertex_trans.glsl", 
+"shadow_frag.glsl", 
+"shadow_vertex.glsl",
+"line_vertex.glsl", 
+"line_frag.glsl"
+]
+GLM_Include = "glm/"
