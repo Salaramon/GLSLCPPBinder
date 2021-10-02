@@ -389,14 +389,12 @@ std::string getVariableLine(std::vector<GLSLVariables> structs, GLSLVariables s,
 }
 
 void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLVariables> structs) {
-	std::fstream GLSLBinderHeader("GLSLCPPBinder.h", std::fstream::in | std::fstream::out);
+	std::fstream GLSLBinderHeader("GLSLCPPBinder.h", std::fstream::in | std::fstream::out | std::ofstream::trunc);
 
 	std::stringstream sstream;
 	sstream << GLSLBinderHeader.rdbuf();
 
-	GLSLBinderHeader.clear();
 	GLSLBinderHeader.seekg(0);
-
 
 	GLSLBinderHeader << "#pragma once\n\n";
 	GLSLBinderHeader << "#include <" << CONFIG::GLM_INCLUDE << "glm.hpp>\n";
