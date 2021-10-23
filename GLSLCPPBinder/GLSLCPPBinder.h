@@ -54,8 +54,9 @@ namespace Binder {
 		if (strings_equal("geometry_vertex.glsl", a)) { return 1; }
 		if (strings_equal("lightsource_vertex.glsl", a)) { return 2; }
 		if (strings_equal("lightsource_vertex_trans.glsl", a)) { return 3; }
-		if (strings_equal("shadow_vertex.glsl", a)) { return 4; }
+		if (strings_equal("light_vertex.glsl", a)) { return 4; }
 		if (strings_equal("line_vertex.glsl", a)) { return 5; }
+		if (strings_equal("shadow_vertex.glsl", a)) { return 6; }
 	};
 
 	template<class... Args>
@@ -102,6 +103,22 @@ namespace Binder {
 		LocationInfo(1, "vec3", "aNormal", 0, 12),
 		LocationInfo(2, "vec2", "aTexCoords", 0, 8)};
 	};
+	struct AttributeStructure_light_vertex{
+		glm::vec3 aPos;
+		glm::vec3 aNormal;
+		glm::vec2 aTexCoords;
+		inline static const std::array<size_t, 3> offsets = {0,12,24};
+		inline static const std::array<LocationInfo, 3> locations = {
+		LocationInfo(0, "vec3", "aPos", 0, 12),
+		LocationInfo(1, "vec3", "aNormal", 0, 12),
+		LocationInfo(2, "vec2", "aTexCoords", 0, 8)};
+	};
+	struct AttributeStructure_line_vertex{
+		glm::vec3 aPos;
+		inline static const std::array<size_t, 1> offsets = {0};
+		inline static const std::array<LocationInfo, 1> locations = {
+		LocationInfo(0, "vec3", "aPos", 0, 12)};
+	};
 	struct AttributeStructure_shadow_vertex{
 		glm::vec3 aPos;
 		glm::vec3 aNormal;
@@ -114,16 +131,10 @@ namespace Binder {
 		LocationInfo(2, "vec2", "aTexCoords", 0, 8),
 		LocationInfo(3, "mat4", "instanceMatrix", 0, 64)};
 	};
-	struct AttributeStructure_line_vertex{
-		glm::vec3 aPos;
-		inline static const std::array<size_t, 1> offsets = {0};
-		inline static const std::array<LocationInfo, 1> locations = {
-		LocationInfo(0, "vec3", "aPos", 0, 12)};
-	};
 
 	struct AttributeObject {
 		template<char const* str>
-		using Get = typename type_list<AttributeStructure_deferred_vertex,AttributeStructure_geometry_vertex,AttributeStructure_lightsource_vertex,AttributeStructure_lightsource_vertex_trans,AttributeStructure_shadow_vertex,AttributeStructure_line_vertex>::type<str>;
+		using Get = typename type_list<AttributeStructure_deferred_vertex,AttributeStructure_geometry_vertex,AttributeStructure_lightsource_vertex,AttributeStructure_lightsource_vertex_trans,AttributeStructure_light_vertex,AttributeStructure_line_vertex,AttributeStructure_shadow_vertex>::type<str>;
 	};
 
 	namespace file_names{
@@ -132,13 +143,14 @@ namespace Binder {
 		constexpr char geometry_frag[] = "geometry_frag.glsl";
 		constexpr char geometry_vertex[] = "geometry_vertex.glsl";
 		constexpr char lightsource_frag[] = "lightsource_frag.glsl";
-		constexpr char lightsource_vertex[] = "lightsource_vertex.glsl";
 		constexpr char lightsource_frag_trans[] = "lightsource_frag_trans.glsl";
+		constexpr char lightsource_vertex[] = "lightsource_vertex.glsl";
 		constexpr char lightsource_vertex_trans[] = "lightsource_vertex_trans.glsl";
+		constexpr char light_vertex[] = "light_vertex.glsl";
+		constexpr char line_frag[] = "line_frag.glsl";
+		constexpr char line_vertex[] = "line_vertex.glsl";
 		constexpr char shadow_frag[] = "shadow_frag.glsl";
 		constexpr char shadow_vertex[] = "shadow_vertex.glsl";
-		constexpr char line_vertex[] = "line_vertex.glsl";
-		constexpr char line_frag[] = "line_frag.glsl";
 	}
 
 	struct Attenuation{
@@ -230,6 +242,14 @@ namespace Binder {
 		};
 	};
 
+	namespace lightsource_frag_trans {
+		namespace locations{
+		};
+		namespace uniforms{
+			 inline Uniform<> diffuse1(Uniform<>("sampler2D", String("diffuse1"), 0, 0));
+		};
+	};
+
 	namespace lightsource_vertex {
 		namespace locations{
 			inline Location<glm::vec3> aPos(0, "vec3", "aPos", 0, 12);
@@ -243,19 +263,44 @@ namespace Binder {
 		};
 	};
 
-	namespace lightsource_frag_trans {
-		namespace locations{
-		};
-		namespace uniforms{
-			 inline Uniform<> diffuse1(Uniform<>("sampler2D", String("diffuse1"), 0, 0));
-		};
-	};
-
 	namespace lightsource_vertex_trans {
 		namespace locations{
 			inline Location<glm::vec3> aPos(0, "vec3", "aPos", 0, 12);
 			inline Location<glm::vec3> aNormal(1, "vec3", "aNormal", 0, 12);
 			inline Location<glm::vec2> aTexCoords(2, "vec2", "aTexCoords", 0, 8);
+		};
+		namespace uniforms{
+			 inline Uniform<glm::mat4> model(Uniform<glm::mat4>("mat4", String("model"), 0, 64));
+			 inline Uniform<glm::mat4> view(Uniform<glm::mat4>("mat4", String("view"), 0, 64));
+			 inline Uniform<glm::mat4> projection(Uniform<glm::mat4>("mat4", String("projection"), 0, 64));
+		};
+	};
+
+	namespace light_vertex {
+		namespace locations{
+			inline Location<glm::vec3> aPos(0, "vec3", "aPos", 0, 12);
+			inline Location<glm::vec3> aNormal(1, "vec3", "aNormal", 0, 12);
+			inline Location<glm::vec2> aTexCoords(2, "vec2", "aTexCoords", 0, 8);
+		};
+		namespace uniforms{
+			 inline Uniform<glm::mat4> model(Uniform<glm::mat4>("mat4", String("model"), 0, 64));
+			 inline Uniform<glm::mat4> view(Uniform<glm::mat4>("mat4", String("view"), 0, 64));
+			 inline Uniform<glm::mat4> projection(Uniform<glm::mat4>("mat4", String("projection"), 0, 64));
+			 inline Uniform<glm::mat4> normal(Uniform<glm::mat4>("mat4", String("normal"), 0, 64));
+		};
+	};
+
+	namespace line_frag {
+		namespace locations{
+		};
+		namespace uniforms{
+			 inline Uniform<glm::vec4> color(Uniform<glm::vec4>("vec4", String("color"), 0, 16));
+		};
+	};
+
+	namespace line_vertex {
+		namespace locations{
+			inline Location<glm::vec3> aPos(0, "vec3", "aPos", 0, 12);
 		};
 		namespace uniforms{
 			 inline Uniform<glm::mat4> model(Uniform<glm::mat4>("mat4", String("model"), 0, 64));
@@ -282,25 +327,6 @@ namespace Binder {
 		namespace uniforms{
 			 inline Uniform<glm::mat4> view(Uniform<glm::mat4>("mat4", String("view"), 0, 64));
 			 inline Uniform<glm::mat4> projection(Uniform<glm::mat4>("mat4", String("projection"), 0, 64));
-		};
-	};
-
-	namespace line_vertex {
-		namespace locations{
-			inline Location<glm::vec3> aPos(0, "vec3", "aPos", 0, 12);
-		};
-		namespace uniforms{
-			 inline Uniform<glm::mat4> model(Uniform<glm::mat4>("mat4", String("model"), 0, 64));
-			 inline Uniform<glm::mat4> view(Uniform<glm::mat4>("mat4", String("view"), 0, 64));
-			 inline Uniform<glm::mat4> projection(Uniform<glm::mat4>("mat4", String("projection"), 0, 64));
-		};
-	};
-
-	namespace line_frag {
-		namespace locations{
-		};
-		namespace uniforms{
-			 inline Uniform<glm::vec4> color(Uniform<glm::vec4>("vec4", String("color"), 0, 16));
 		};
 	};
 

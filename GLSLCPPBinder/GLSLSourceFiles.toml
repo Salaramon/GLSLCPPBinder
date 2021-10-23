@@ -2,7 +2,10 @@
 Halt_On_Error = false
 Generate_Log = true
 
-Shader_Files = [ 
+Shader_Folders = ["shaders"]
+Shader_File_Extension = "glsl"
+
+hader_Files = [ 
 "deferred_frag.glsl", 
 "deferred_vertex.glsl", 
 "geometry_frag.glsl", 

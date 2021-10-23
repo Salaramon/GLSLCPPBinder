@@ -458,11 +458,16 @@ void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLVariables
 
 	GLSLBinderHeader << "\tconstexpr unsigned int get_map_value(char const* a){\n";
 	size_t returnValue = 0;
-	for (auto& file : variables) {
-		if (file.loc.variables.size() != 0) {
-			GLSLBinderHeader << "\t\tif (strings_equal(\"" << file.fileName << "\", a)) { return " << returnValue << "; }\n";
-			returnValue++;
+	if (variables.size() > 0) {
+		for (auto& file : variables) {
+			if (file.loc.variables.size() != 0) {
+				GLSLBinderHeader << "\t\tif (strings_equal(\"" << file.fileName << "\", a)) { return " << returnValue << "; }\n";
+				returnValue++;
+			}
 		}
+	}
+	else {
+		GLSLBinderHeader << "\t\treturn 0;\n";
 	}
 	GLSLBinderHeader << "\t};\n\n";
 	
@@ -652,54 +657,93 @@ struct AttributeObject {
 };
 */
 
-constexpr char vertex[] = "float";
+//constexpr char vertex[] = "float";
+
+bool endsWith(std::string const& fullString, std::string const& ending) {
+	if (fullString.length() >= ending.length()) {
+		return (0 == fullString.compare(fullString.length() - ending.length(), ending.length(), ending));
+	}
+	else {
+		return false;
+	}
+}
 
 int WinMain() {
 
 	//Initialize variables
 	int error = 0;
 	toml::table tomlFile;
-	std::vector<std::string> fileNames;
+	std::vector<std::string> filePaths;
+	std::vector<std::string> folderNames;
 
 	error = readTOMLConfig(tomlFile, "GLSLSourceFiles.toml");
 	if (error) {
 		return error;
 	}
-	else {
+
+	if (CONFIG::GENERATE_LOG) {
+		REPORT::LOG.open(FILES::LOG);
+		REPORT::LOG << "Running binder at " << std::chrono::system_clock::now() << std::endl;
+	}
+
+	//Handle reading of filenames
+	if (tomlFile[CONFIG_KEYS::SHADER_FILES].is_array()) {
 		for (size_t i = 0; i < tomlFile[CONFIG_KEYS::SHADER_FILES].as_array()->size(); i++) {
-			fileNames.push_back(tomlFile[CONFIG_KEYS::SHADER_FILES][i].value<std::string>().value());
+			filePaths.push_back(tomlFile[CONFIG_KEYS::SHADER_FILES][i].value<std::string>().value());
 		}
 	}
+	//Handle folder search
+	if (tomlFile[CONFIG_KEYS::SHADER_FOLDERS].is_array()) {
+		for (auto&& shaderFolderNode : *tomlFile[CONFIG_KEYS::SHADER_FOLDERS].as_array()) {
+			folderNames.push_back(shaderFolderNode.value<std::string>().value());
+		}
+
+		for (std::string folderName : folderNames) {
+			for (const auto& entry : std::filesystem::recursive_directory_iterator(folderName)) {
+				if (endsWith(entry.path().string(), CONFIG::SHADER_FILE_EXTENSION)) {
+					filePaths.push_back(entry.path().string());
+				}
+			}
+		}
+	}
+
+	if (tomlFile[CONFIG_KEYS::GENERATE_LOG] && filePaths.size() == 0) {
+		REPORT::LOG << "Found no configured files to generate bindings for." << std::endl;
+	}
+
 	
 	GLSLBinderDataStructure variables;
 	std::vector<GLSLVariables> structs;
 	
-	for (std::string file : fileNames) {
-		std::ifstream shaderFile(file);
-		error = shaderFileIsBad(shaderFile, file);
+	for (std::string filePath : filePaths) {
+		std::ifstream shaderFile(filePath);
+		error = shaderFileIsBad(shaderFile, filePath);
 		if (error) {
+			REPORT::LOG.close();
 			return error;
 		}
-		else {
-			GLSLBinderData data;
-			data.fileName = file;
 
-			std::stringstream converter;
-			converter << shaderFile.rdbuf();
-			std::string shaderCode = converter.str();
-			
-			getConstantVariables(shaderCode);
-			auto extractedStructs = extractStructs(shaderCode);
-			//structs.insert(structs.end(), extractedStructs.begin(), extractedStructs.end());
-			std::copy(extractedStructs.begin(), extractedStructs.end(), std::back_inserter(structs));
-			data.loc.variables = getVariableInfo<ATT_INFO>(shaderCode, ShaderCodeRegex::LOCATION);
-			data.uni.variables = getVariableInfo<UNI_INFO>(shaderCode, ShaderCodeRegex::UNIFORM);
-			//insertStructsTypes<UNI_INFO>(structs, data.uni);
-			variables.push_back(std::move(data));
-			
-		}
+		size_t lastSlash = filePath.find_last_of('\\');
+		std::string filename = filePath.substr(lastSlash + 1);
 
-		
+		GLSLBinderData data;
+		data.fileName = filename;
+
+		std::stringstream converter;
+		converter << shaderFile.rdbuf();
+		std::string shaderCode = converter.str();
+			
+		getConstantVariables(shaderCode);
+		auto extractedStructs = extractStructs(shaderCode);
+		//structs.insert(structs.end(), extractedStructs.begin(), extractedStructs.end());
+		std::copy(extractedStructs.begin(), extractedStructs.end(), std::back_inserter(structs));
+		data.loc.variables = getVariableInfo<ATT_INFO>(shaderCode, ShaderCodeRegex::LOCATION);
+		data.uni.variables = getVariableInfo<UNI_INFO>(shaderCode, ShaderCodeRegex::UNIFORM);
+		//insertStructsTypes<UNI_INFO>(structs, data.uni);
+		variables.push_back(std::move(data));
+
+		if (CONFIG::GENERATE_LOG)
+			REPORT::LOG << "Made binder for: " << filePath << std::endl;
 	}
 
 	
