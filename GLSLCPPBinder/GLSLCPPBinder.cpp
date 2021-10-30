@@ -414,6 +414,7 @@ void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLVariables
 		}
 	}
 
+	//String is probably a useless helper class now that uniform initializors are used
 	GLSLBinderHeader << "\tstruct String : public std::string {\n";
 	GLSLBinderHeader << "\t\tusing std::string::basic_string;\n";
 	GLSLBinderHeader << "\t\toperator const char*() const{\n";
@@ -565,30 +566,20 @@ void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLVariables
 
 		std::string noExtFile = removeExtension(file.fileName);
 
-		GLSLBinderHeader << "\tnamespace " << noExtFile << " {\n";
-		GLSLBinderHeader << "\t\tnamespace " << file.loc.typeName << "s" << "{\n";
+		GLSLBinderHeader << "\struct " << noExtFile << " {\n";
+		GLSLBinderHeader << "\t\struct " << file.loc.typeName << "s" << "{\n";
 		for (auto var : file.loc.variables) {
-			GLSLBinderHeader << "\t\t\tinline Location<" + GLSLTypeToCPP.find(var[(size_t)ATT_INFO::TYPE])->second + "> " + var[(size_t)ATT_INFO::NAME] + "(" + var[(size_t)ATT_INFO::LOCATION] + ", \"" + var[(size_t)ATT_INFO::TYPE] + "\", \"" + var[(size_t)ATT_INFO::NAME] + "\", " + var[(size_t)ATT_INFO::ARRAY] + ", " + var[(size_t)ATT_INFO::SIZE] + ");\n";
+			GLSLBinderHeader << "\t\t\tinline static Location<" + GLSLTypeToCPP.find(var[(size_t)ATT_INFO::TYPE])->second + "> " + var[(size_t)ATT_INFO::NAME] + "{" + "Location <" + GLSLTypeToCPP.find(var[(size_t)ATT_INFO::TYPE])->second + ">(" + var[(size_t)ATT_INFO::LOCATION] + ", \"" + var[(size_t)ATT_INFO::TYPE] + "\", \"" + var[(size_t)ATT_INFO::NAME] + "\", " + var[(size_t)ATT_INFO::ARRAY] + ", " + var[(size_t)ATT_INFO::SIZE] + ")};\n";
 		}//Fix order how uniforms and locs are passed<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 		GLSLBinderHeader << "\t\t};\n";
 
-		GLSLBinderHeader << "\t\tnamespace " << file.uni.typeName << "s" << "{\n";
+		GLSLBinderHeader << "\t\tstruct " << file.uni.typeName << "s" << "{\n";
 		size_t type = (size_t)UNI_INFO::TYPE;
 		for (auto var : file.uni.variables) {
-			GLSLBinderHeader << "\t\t\t inline " << getVariableLine(structs, file.uni, var);
-			if (isUniform(structs, var)) {
-				GLSLBinderHeader << "(";
-			}
-			else {
-				GLSLBinderHeader << "{";
-			}
+			GLSLBinderHeader << "\t\t\t inline static " << getVariableLine(structs, file.uni, var);
+			GLSLBinderHeader << "{";
 			GLSLBinderHeader << getVariableParameters(structs, file.uni, var);
-			if (isUniform(structs, var)) {
-				GLSLBinderHeader << ");\n";
-			}
-			else {
-				GLSLBinderHeader << "};\n";
-			}
+			GLSLBinderHeader << "};\n";
 		}
 		for (auto& vars : file.uni.structure) {
 			if (vars != nullptr) {
@@ -701,11 +692,9 @@ int WinMain() {
 
 		
 	}
-
 	
 	generateHeader(std::move(variables), structs);
 	REPORT::LOG.close();
-
 
 	return 0;
 }

@@ -177,130 +177,130 @@ namespace Binder {
 			Uniform<glm::vec3> position;
 	};
 
-	namespace deferred_frag {
-		namespace locations{
+struct deferred_frag {
+	struct locations{
 		};
-		namespace uniforms{
-			 inline Uniform<> gPosition(Uniform<>("sampler2D", String("gPosition"), 0, 0));
-			 inline Uniform<> gNormal(Uniform<>("sampler2D", String("gNormal"), 0, 0));
-			 inline Uniform<> gColor(Uniform<>("sampler2D", String("gColor"), 0, 0));
-			 inline Uniform<glm::vec3> worldCameraPos(Uniform<glm::vec3>("vec3", String("worldCameraPos"), 0, 12));
-			 inline PointLight pointLights[32]{PointLight(String("pointLights[0]")), PointLight(String("pointLights[1]")), PointLight(String("pointLights[2]")), PointLight(String("pointLights[3]")), PointLight(String("pointLights[4]")), PointLight(String("pointLights[5]")), PointLight(String("pointLights[6]")), PointLight(String("pointLights[7]")), PointLight(String("pointLights[8]")), PointLight(String("pointLights[9]")), PointLight(String("pointLights[10]")), PointLight(String("pointLights[11]")), PointLight(String("pointLights[12]")), PointLight(String("pointLights[13]")), PointLight(String("pointLights[14]")), PointLight(String("pointLights[15]")), PointLight(String("pointLights[16]")), PointLight(String("pointLights[17]")), PointLight(String("pointLights[18]")), PointLight(String("pointLights[19]")), PointLight(String("pointLights[20]")), PointLight(String("pointLights[21]")), PointLight(String("pointLights[22]")), PointLight(String("pointLights[23]")), PointLight(String("pointLights[24]")), PointLight(String("pointLights[25]")), PointLight(String("pointLights[26]")), PointLight(String("pointLights[27]")), PointLight(String("pointLights[28]")), PointLight(String("pointLights[29]")), PointLight(String("pointLights[30]")), PointLight(String("pointLights[31]"))};
-			 inline Uniform<float> materialSpecularIntensity(Uniform<float>("float", String("materialSpecularIntensity"), 0, 4));
-			 inline Uniform<float> materialShininess(Uniform<float>("float", String("materialShininess"), 0, 4));
-		};
-	};
-
-	namespace deferred_vertex {
-		namespace locations{
-			inline Location<glm::vec3> aPos(0, "vec3", "aPos", 0, 12);
-			inline Location<glm::vec2> aTexCoords(2, "vec2", "aTexCoords", 0, 8);
-		};
-		namespace uniforms{
+		struct uniforms{
+			 inline static Uniform<> gPosition{Uniform<>("sampler2D", String("gPosition"), 0, 0)};
+			 inline static Uniform<> gNormal{Uniform<>("sampler2D", String("gNormal"), 0, 0)};
+			 inline static Uniform<> gColor{Uniform<>("sampler2D", String("gColor"), 0, 0)};
+			 inline static Uniform<glm::vec3> worldCameraPos{Uniform<glm::vec3>("vec3", String("worldCameraPos"), 0, 12)};
+			 inline static PointLight pointLights[32]{PointLight(String("pointLights[0]")), PointLight(String("pointLights[1]")), PointLight(String("pointLights[2]")), PointLight(String("pointLights[3]")), PointLight(String("pointLights[4]")), PointLight(String("pointLights[5]")), PointLight(String("pointLights[6]")), PointLight(String("pointLights[7]")), PointLight(String("pointLights[8]")), PointLight(String("pointLights[9]")), PointLight(String("pointLights[10]")), PointLight(String("pointLights[11]")), PointLight(String("pointLights[12]")), PointLight(String("pointLights[13]")), PointLight(String("pointLights[14]")), PointLight(String("pointLights[15]")), PointLight(String("pointLights[16]")), PointLight(String("pointLights[17]")), PointLight(String("pointLights[18]")), PointLight(String("pointLights[19]")), PointLight(String("pointLights[20]")), PointLight(String("pointLights[21]")), PointLight(String("pointLights[22]")), PointLight(String("pointLights[23]")), PointLight(String("pointLights[24]")), PointLight(String("pointLights[25]")), PointLight(String("pointLights[26]")), PointLight(String("pointLights[27]")), PointLight(String("pointLights[28]")), PointLight(String("pointLights[29]")), PointLight(String("pointLights[30]")), PointLight(String("pointLights[31]"))};
+			 inline static Uniform<float> materialSpecularIntensity{Uniform<float>("float", String("materialSpecularIntensity"), 0, 4)};
+			 inline static Uniform<float> materialShininess{Uniform<float>("float", String("materialShininess"), 0, 4)};
 		};
 	};
 
-	namespace geometry_frag {
-		namespace locations{
+struct deferred_vertex {
+	struct locations{
+			inline static Location<glm::vec3> aPos{Location <glm::vec3>(0, "vec3", "aPos", 0, 12)};
+			inline static Location<glm::vec2> aTexCoords{Location <glm::vec2>(2, "vec2", "aTexCoords", 0, 8)};
 		};
-		namespace uniforms{
-			 inline Uniform<> diffuse1(Uniform<>("sampler2D", String("diffuse1"), 0, 0));
-		};
-	};
-
-	namespace geometry_vertex {
-		namespace locations{
-			inline Location<glm::vec3> aPos(0, "vec3", "aPos", 0, 12);
-			inline Location<glm::vec3> aNormal(1, "vec3", "aNormal", 0, 12);
-			inline Location<glm::vec2> aTexCoords(2, "vec2", "aTexCoords", 0, 8);
-		};
-		namespace uniforms{
-			 inline Uniform<glm::mat4> view(Uniform<glm::mat4>("mat4", String("view"), 0, 64));
-			 inline Uniform<glm::mat4> projection(Uniform<glm::mat4>("mat4", String("projection"), 0, 64));
-			 inline Uniform<glm::mat4> normal(Uniform<glm::mat4>("mat4", String("normal"), 0, 64));
-			 inline Uniform<glm::mat4> model(Uniform<glm::mat4>("mat4", String("model"), 0, 64));
+		struct uniforms{
 		};
 	};
 
-	namespace lightsource_frag {
-		namespace locations{
+struct geometry_frag {
+	struct locations{
 		};
-		namespace uniforms{
-			 inline Uniform<> diffuse1(Uniform<>("sampler2D", String("diffuse1"), 0, 0));
-		};
-	};
-
-	namespace lightsource_vertex {
-		namespace locations{
-			inline Location<glm::vec3> aPos(0, "vec3", "aPos", 0, 12);
-			inline Location<glm::vec3> aNormal(1, "vec3", "aNormal", 0, 12);
-			inline Location<glm::vec2> aTexCoords(2, "vec2", "aTexCoords", 0, 8);
-		};
-		namespace uniforms{
-			 inline Uniform<glm::mat4> model(Uniform<glm::mat4>("mat4", String("model"), 0, 64));
-			 inline Uniform<glm::mat4> view(Uniform<glm::mat4>("mat4", String("view"), 0, 64));
-			 inline Uniform<glm::mat4> projection(Uniform<glm::mat4>("mat4", String("projection"), 0, 64));
+		struct uniforms{
+			 inline static Uniform<> diffuse1{Uniform<>("sampler2D", String("diffuse1"), 0, 0)};
 		};
 	};
 
-	namespace lightsource_frag_trans {
-		namespace locations{
+struct geometry_vertex {
+	struct locations{
+			inline static Location<glm::vec3> aPos{Location <glm::vec3>(0, "vec3", "aPos", 0, 12)};
+			inline static Location<glm::vec3> aNormal{Location <glm::vec3>(1, "vec3", "aNormal", 0, 12)};
+			inline static Location<glm::vec2> aTexCoords{Location <glm::vec2>(2, "vec2", "aTexCoords", 0, 8)};
 		};
-		namespace uniforms{
-			 inline Uniform<> diffuse1(Uniform<>("sampler2D", String("diffuse1"), 0, 0));
-		};
-	};
-
-	namespace lightsource_vertex_trans {
-		namespace locations{
-			inline Location<glm::vec3> aPos(0, "vec3", "aPos", 0, 12);
-			inline Location<glm::vec3> aNormal(1, "vec3", "aNormal", 0, 12);
-			inline Location<glm::vec2> aTexCoords(2, "vec2", "aTexCoords", 0, 8);
-		};
-		namespace uniforms{
-			 inline Uniform<glm::mat4> model(Uniform<glm::mat4>("mat4", String("model"), 0, 64));
-			 inline Uniform<glm::mat4> view(Uniform<glm::mat4>("mat4", String("view"), 0, 64));
-			 inline Uniform<glm::mat4> projection(Uniform<glm::mat4>("mat4", String("projection"), 0, 64));
+		struct uniforms{
+			 inline static Uniform<glm::mat4> view{Uniform<glm::mat4>("mat4", String("view"), 0, 64)};
+			 inline static Uniform<glm::mat4> projection{Uniform<glm::mat4>("mat4", String("projection"), 0, 64)};
+			 inline static Uniform<glm::mat4> normal{Uniform<glm::mat4>("mat4", String("normal"), 0, 64)};
+			 inline static Uniform<glm::mat4> model{Uniform<glm::mat4>("mat4", String("model"), 0, 64)};
 		};
 	};
 
-	namespace shadow_frag {
-		namespace locations{
+struct lightsource_frag {
+	struct locations{
 		};
-		namespace uniforms{
-			 inline Uniform<> shadowMap(Uniform<>("sampler2D", String("shadowMap"), 0, 0));
-		};
-	};
-
-	namespace shadow_vertex {
-		namespace locations{
-			inline Location<glm::vec3> aPos(0, "vec3", "aPos", 0, 12);
-			inline Location<glm::vec3> aNormal(1, "vec3", "aNormal", 0, 12);
-			inline Location<glm::vec2> aTexCoords(2, "vec2", "aTexCoords", 0, 8);
-			inline Location<glm::mat4> instanceMatrix(3, "mat4", "instanceMatrix", 0, 64);
-		};
-		namespace uniforms{
-			 inline Uniform<glm::mat4> view(Uniform<glm::mat4>("mat4", String("view"), 0, 64));
-			 inline Uniform<glm::mat4> projection(Uniform<glm::mat4>("mat4", String("projection"), 0, 64));
+		struct uniforms{
+			 inline static Uniform<> diffuse1{Uniform<>("sampler2D", String("diffuse1"), 0, 0)};
 		};
 	};
 
-	namespace line_vertex {
-		namespace locations{
-			inline Location<glm::vec3> aPos(0, "vec3", "aPos", 0, 12);
+struct lightsource_vertex {
+	struct locations{
+			inline static Location<glm::vec3> aPos{Location <glm::vec3>(0, "vec3", "aPos", 0, 12)};
+			inline static Location<glm::vec3> aNormal{Location <glm::vec3>(1, "vec3", "aNormal", 0, 12)};
+			inline static Location<glm::vec2> aTexCoords{Location <glm::vec2>(2, "vec2", "aTexCoords", 0, 8)};
 		};
-		namespace uniforms{
-			 inline Uniform<glm::mat4> model(Uniform<glm::mat4>("mat4", String("model"), 0, 64));
-			 inline Uniform<glm::mat4> view(Uniform<glm::mat4>("mat4", String("view"), 0, 64));
-			 inline Uniform<glm::mat4> projection(Uniform<glm::mat4>("mat4", String("projection"), 0, 64));
+		struct uniforms{
+			 inline static Uniform<glm::mat4> model{Uniform<glm::mat4>("mat4", String("model"), 0, 64)};
+			 inline static Uniform<glm::mat4> view{Uniform<glm::mat4>("mat4", String("view"), 0, 64)};
+			 inline static Uniform<glm::mat4> projection{Uniform<glm::mat4>("mat4", String("projection"), 0, 64)};
 		};
 	};
 
-	namespace line_frag {
-		namespace locations{
+struct lightsource_frag_trans {
+	struct locations{
 		};
-		namespace uniforms{
-			 inline Uniform<glm::vec4> color(Uniform<glm::vec4>("vec4", String("color"), 0, 16));
+		struct uniforms{
+			 inline static Uniform<> diffuse1{Uniform<>("sampler2D", String("diffuse1"), 0, 0)};
+		};
+	};
+
+struct lightsource_vertex_trans {
+	struct locations{
+			inline static Location<glm::vec3> aPos{Location <glm::vec3>(0, "vec3", "aPos", 0, 12)};
+			inline static Location<glm::vec3> aNormal{Location <glm::vec3>(1, "vec3", "aNormal", 0, 12)};
+			inline static Location<glm::vec2> aTexCoords{Location <glm::vec2>(2, "vec2", "aTexCoords", 0, 8)};
+		};
+		struct uniforms{
+			 inline static Uniform<glm::mat4> model{Uniform<glm::mat4>("mat4", String("model"), 0, 64)};
+			 inline static Uniform<glm::mat4> view{Uniform<glm::mat4>("mat4", String("view"), 0, 64)};
+			 inline static Uniform<glm::mat4> projection{Uniform<glm::mat4>("mat4", String("projection"), 0, 64)};
+		};
+	};
+
+struct shadow_frag {
+	struct locations{
+		};
+		struct uniforms{
+			 inline static Uniform<> shadowMap{Uniform<>("sampler2D", String("shadowMap"), 0, 0)};
+		};
+	};
+
+struct shadow_vertex {
+	struct locations{
+			inline static Location<glm::vec3> aPos{Location <glm::vec3>(0, "vec3", "aPos", 0, 12)};
+			inline static Location<glm::vec3> aNormal{Location <glm::vec3>(1, "vec3", "aNormal", 0, 12)};
+			inline static Location<glm::vec2> aTexCoords{Location <glm::vec2>(2, "vec2", "aTexCoords", 0, 8)};
+			inline static Location<glm::mat4> instanceMatrix{Location <glm::mat4>(3, "mat4", "instanceMatrix", 0, 64)};
+		};
+		struct uniforms{
+			 inline static Uniform<glm::mat4> view{Uniform<glm::mat4>("mat4", String("view"), 0, 64)};
+			 inline static Uniform<glm::mat4> projection{Uniform<glm::mat4>("mat4", String("projection"), 0, 64)};
+		};
+	};
+
+struct line_vertex {
+	struct locations{
+			inline static Location<glm::vec3> aPos{Location <glm::vec3>(0, "vec3", "aPos", 0, 12)};
+		};
+		struct uniforms{
+			 inline static Uniform<glm::mat4> model{Uniform<glm::mat4>("mat4", String("model"), 0, 64)};
+			 inline static Uniform<glm::mat4> view{Uniform<glm::mat4>("mat4", String("view"), 0, 64)};
+			 inline static Uniform<glm::mat4> projection{Uniform<glm::mat4>("mat4", String("projection"), 0, 64)};
+		};
+	};
+
+struct line_frag {
+	struct locations{
+		};
+		struct uniforms{
+			 inline static Uniform<glm::vec4> color{Uniform<glm::vec4>("vec4", String("color"), 0, 16)};
 		};
 	};
 
