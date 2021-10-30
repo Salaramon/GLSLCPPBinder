@@ -5,19 +5,19 @@
 bool shaderFileIsBad(std::ifstream& file, std::string fileName) {
 	if (file.fail()) {
 		if (CONFIG::GENERATE_LOG) {
-			REPORT::LOG << "Failed to open shader file: " << fileName << std::endl;
+			REPORT::LOG << "Failed to open shader file: " << fileName;
 		}
 		if (CONFIG::HALT_ON_ERROR) {
 			return 1;
 		}
 		else if (CONFIG::GENERATE_LOG) {
-			REPORT::LOG << "Skipping..." << std::endl;
+			REPORT::LOG << ". Skipping..." << std::endl;
 		}
 	}
 
 	if (file.good()) {
 		if (CONFIG::GENERATE_LOG) {
-			REPORT::LOG << "Succesfully opened file " << fileName << std::endl;
+			REPORT::LOG << "Successfully opened file " << fileName << std::endl;
 		}
 	}
 
@@ -38,7 +38,7 @@ std::pair<bool, std::string> readTOMLKey(toml::table& tomlFile, std::string key,
 			warning = false;
 		}
 		else {
-			startupMessage << "Warining: Key \"" << key << "\" has no value! Using default value: " << valueRef << std::endl;
+			startupMessage << "Warning: Key \"" << key << "\" has no value! Using default value: " << valueRef << std::endl;
 		}
 	}
 
@@ -63,26 +63,30 @@ bool readTOMLConfig(toml::table& tomlFileReference, std::string tomlConfigPath) 
 	}
 
 	auto genLogKeyResult = readTOMLKey(tomlFileReference, CONFIG_KEYS::GENERATE_LOG, CONFIG::GENERATE_LOG);
-	if (genLogKeyResult.first) {
-		if (CONFIG::GENERATE_LOG == true) {
-			REPORT::LOG.open(FILES::LOG);
-		}
-	}
+
 	if (CONFIG::GENERATE_LOG) {
-		REPORT::LOG << startupMessage.rdbuf();
-		REPORT::LOG << genLogKeyResult.second;
+		REPORT::LOG.open(FILES::LOG);
+		REPORT::LOG << startupMessage.rdbuf()->str();
+		if (genLogKeyResult.first)
+			REPORT::LOG << genLogKeyResult.second;
 	}
 
 	auto errHaltKeyResult = readTOMLKey(tomlFileReference, CONFIG_KEYS::HALT_ON_ERROR, CONFIG::HALT_ON_ERROR);
-	if (CONFIG::GENERATE_LOG) {
+	if (errHaltKeyResult.first && CONFIG::GENERATE_LOG) {
 		REPORT::LOG << errHaltKeyResult.second;
 	}
 
 	auto errGLMKeyResult = readTOMLKey(tomlFileReference, CONFIG_KEYS::GLM_INCLUDE, CONFIG::GLM_INCLUDE);
-	if (CONFIG::GENERATE_LOG) {
+	if (errGLMKeyResult.first && CONFIG::GENERATE_LOG) {
 		REPORT::LOG << errGLMKeyResult.second;
 	}
 
+	auto errExtensionKeyResult = readTOMLKey(tomlFileReference, CONFIG_KEYS::SHADER_FILE_EXTENSION, CONFIG::SHADER_FILE_EXTENSION);
+	if (errExtensionKeyResult.first && CONFIG::GENERATE_LOG) {
+		REPORT::LOG << errGLMKeyResult.second;
+	}
+
+	REPORT::LOG.close();
 	return 0;
 
 }

@@ -4,10 +4,10 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 # BOOST
-boost_1_74_0/
-tomlplusplus-2.4.0/
+boost_*/
+tomlplusplus-*/
 craigsapp-midifile-988d55b/
-Interfaces\ v1.0/
+Interfaces\ v*/
 ASSIMP/
 GLAD/
 GLM/

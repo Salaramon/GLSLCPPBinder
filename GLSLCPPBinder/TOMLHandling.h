@@ -17,6 +17,7 @@ struct CONFIG {
 	inline static bool GENERATE_LOG = true;
 	inline static bool HALT_ON_ERROR = true;
 	inline static std::string GLM_INCLUDE = "";
+	inline static std::string SHADER_FILE_EXTENSION = "";
 };
 
 struct FILES {
@@ -24,15 +25,17 @@ struct FILES {
 	inline static std::string LOG = "GLSLCPPBinder.log";
 };
 
-struct REPORT {
-	inline static std::ofstream LOG;
+namespace REPORT {
+	static std::ofstream LOG;
 };
 
 struct CONFIG_KEYS {
 	inline static const char* GENERATE_LOG = "Generate_Log";
 	inline static const char* HALT_ON_ERROR = "Halt_On_Error";
-	inline static const char* SHADER_FILES = "Shader_Files";
 	inline static const char* GLM_INCLUDE = "GLM_Include";
+	inline static const char* SHADER_FILES = "Shader_Files";
+	inline static const char* SHADER_FOLDERS = "Shader_Folders";
+	inline static const char* SHADER_FILE_EXTENSION = "Shader_File_Extension";
 
 };
 
