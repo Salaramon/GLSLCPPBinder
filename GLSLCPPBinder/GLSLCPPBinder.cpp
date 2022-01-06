@@ -1,4 +1,5 @@
 
+#include <algorithm>
 #include <sstream>
 #include <vector>
 #include <filesystem>
@@ -159,8 +160,9 @@ const std::unordered_map<std::string, size_t> GLSLTypeSize = {
 
 struct GLSLBinderData {
 	GLSLBinderData() : uni("uniform"), loc("location") {}
-	GLSLBinderData(const GLSLBinderData&& other) : uni(std::move(other.uni)), loc(std::move(other.loc)), fileName(other.fileName) {}
+	GLSLBinderData(const GLSLBinderData&& other) : uni(std::move(other.uni)), loc(std::move(other.loc)), fileName(other.fileName), filePath(other.filePath) {}
 	std::string fileName;
+	std::string filePath;
 	GLSLVariables uni;
 	GLSLVariables loc;
 };
@@ -532,7 +534,7 @@ void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLVariables
 	GLSLBinderHeader << "\tnamespace file_names{\n";
 	for (auto& file : variables) {
 		std::string noExtFile = removeExtension(file.fileName);
-		GLSLBinderHeader << "\t\tconstexpr char " << noExtFile << "[] = " << "\"" << file.fileName << "\";\n";
+		GLSLBinderHeader << "\t\tconstexpr char " << noExtFile << "[] = " << "\"" << file.filePath << "\";\n";
 	}
 	GLSLBinderHeader << "\t}\n\n";
 
@@ -571,8 +573,8 @@ void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLVariables
 
 		std::string noExtFile = removeExtension(file.fileName);
 
-		GLSLBinderHeader << "\struct " << noExtFile << " {\n";
-		GLSLBinderHeader << "\t\struct " << file.loc.typeName << "s" << "{\n";
+		GLSLBinderHeader << "struct " << noExtFile << " {\n";
+		GLSLBinderHeader << "\tstruct " << file.loc.typeName << "s" << "{\n";
 		for (auto var : file.loc.variables) {
 			GLSLBinderHeader << "\t\t\tinline static Location<" + GLSLTypeToCPP.find(var[(size_t)ATT_INFO::TYPE])->second + "> " + var[(size_t)ATT_INFO::NAME] + "{" + "Location <" + GLSLTypeToCPP.find(var[(size_t)ATT_INFO::TYPE])->second + ">(" + var[(size_t)ATT_INFO::LOCATION] + ", \"" + var[(size_t)ATT_INFO::TYPE] + "\", \"" + var[(size_t)ATT_INFO::NAME] + "\", " + var[(size_t)ATT_INFO::ARRAY] + ", " + var[(size_t)ATT_INFO::SIZE] + ")};\n";
 		}//Fix order how uniforms and locs are passed<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -716,8 +718,11 @@ int WinMain() {
 
 		size_t lastSlash = filePath.find_last_of('\\');
 		std::string filename = filePath.substr(lastSlash + 1);
+		std::string sanitizedPath(filePath);
+		std::replace(sanitizedPath.begin(), sanitizedPath.end(), '\\', '/');
 
 		GLSLBinderData data;
+		data.filePath = sanitizedPath;
 		data.fileName = filename;
 
 		std::stringstream converter;
