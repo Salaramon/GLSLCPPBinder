@@ -10,6 +10,10 @@ namespace Binder {
 
 	struct String : public std::string {
 		using std::string::basic_string;
+		template<class E, class T, class A>
+		String(std::basic_string<E, T, A>& other) : std::string::basic_string(other) {}
+		template<class E, class T, class A>
+		String(std::basic_string<E, T, A>&& other) : std::string::basic_string(other) {}
 		operator const char*() const{
 			return c_str();
 		}

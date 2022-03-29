@@ -419,6 +419,10 @@ void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLVariables
 	//String is probably a useless helper class now that uniform initializors are used
 	GLSLBinderHeader << "\tstruct String : public std::string {\n";
 	GLSLBinderHeader << "\t\tusing std::string::basic_string;\n";
+	GLSLBinderHeader << "\t\ttemplate<class E, class T, class A>\n";
+	GLSLBinderHeader << "\t\tString(std::basic_string<E, T, A>& other) : std::string::basic_string(other) {}\n";
+	GLSLBinderHeader << "\t\ttemplate<class E, class T, class A>\n";
+	GLSLBinderHeader << "\t\tString(std::basic_string<E, T, A>&& other) : std::string::basic_string(other) {}\n";
 	GLSLBinderHeader << "\t\toperator const char*() const{\n";
 	GLSLBinderHeader << "\t\t\treturn c_str();\n";
 	GLSLBinderHeader << "\t\t}\n";
