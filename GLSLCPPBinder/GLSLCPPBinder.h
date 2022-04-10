@@ -8,6 +8,8 @@
 
 namespace Binder {
 
+	// ---------------------------- internal type declarations ----------------------------
+
 	struct String : public std::string {
 		using std::string::basic_string;
 		template<class E, class T, class A>
@@ -33,7 +35,8 @@ namespace Binder {
 	template<class T = void>
 	struct Location : public LocationInfo {
 		Location(const GLuint loc, String type, String name, const size_t array, const GLint size) : LocationInfo(loc, type, name, array, size) {}
-		using type = T;	};
+		using type = T;
+	};
 
 	struct UniformInfo {
 		UniformInfo() : type(""), name(""), array(0), size(0) {}
@@ -48,7 +51,16 @@ namespace Binder {
 	template<class T = void>
 	struct Uniform : public UniformInfo {
 		Uniform(String type, String name, const size_t array, const GLint size) : UniformInfo(type, name, array, size) {}
-		using type = T;	};
+		using type = T;
+	};
+
+	struct UniformBufferInfo {
+		UniformBufferInfo() : binding(-1), size(-1), name() {}
+		UniformBufferInfo(const size_t binding, const size_t size, String name) : binding(binding), size(size), name(name) {}
+		const size_t binding;
+		const size_t size;
+		String name;
+	};
 
 	constexpr bool strings_equal(char const* a, char const* b) {
 	return *a == *b && (*a == '\0' || strings_equal(a + 1, b + 1));
@@ -69,77 +81,107 @@ namespace Binder {
 	template <char const* str>
 	using type = typename std::tuple_element<get_map_value(str), std::tuple<Args...>>::type;
 	};
+
+	// ---------------------------- shader file attribute objects ----------------------------
+
 	struct AttributeStructure_deferred_vertex{
 		glm::vec3 aPos;
 		glm::vec2 aTexCoords;
-		inline static const std::array<size_t, 2> offsets = {0,12};
+		inline static const std::array<size_t, 2> offsets = {
+			0,12
+		};
 		inline static const std::array<LocationInfo, 2> locations = {
-		LocationInfo(0, "vec3", "aPos", 0, 12),
-		LocationInfo(2, "vec2", "aTexCoords", 0, 8)};
+			LocationInfo(0, "vec3", "aPos", 0, 12),
+			LocationInfo(2, "vec2", "aTexCoords", 0, 8)
+		};
 	};
 	struct AttributeStructure_geometry_vertex{
 		glm::vec3 aPos;
 		glm::vec3 aNormal;
 		glm::vec2 aTexCoords;
-		inline static const std::array<size_t, 3> offsets = {0,12,24};
-		inline static const std::array<LocationInfo, 3> locations = {
-		LocationInfo(0, "vec3", "aPos", 0, 12),
-		LocationInfo(1, "vec3", "aNormal", 0, 12),
-		LocationInfo(2, "vec2", "aTexCoords", 0, 8)};
+		glm::vec3 aTangent;
+		glm::vec3 aBitangent;
+		inline static const std::array<size_t, 5> offsets = {
+			0,12,24,32,44
+		};
+		inline static const std::array<LocationInfo, 5> locations = {
+			LocationInfo(0, "vec3", "aPos", 0, 12),
+			LocationInfo(1, "vec3", "aNormal", 0, 12),
+			LocationInfo(2, "vec2", "aTexCoords", 0, 8),
+			LocationInfo(3, "vec3", "aTangent", 0, 12),
+			LocationInfo(4, "vec3", "aBitangent", 0, 12)
+		};
 	};
 	struct AttributeStructure_lightsource_vertex{
 		glm::vec3 aPos;
 		glm::vec3 aNormal;
 		glm::vec2 aTexCoords;
-		inline static const std::array<size_t, 3> offsets = {0,12,24};
+		inline static const std::array<size_t, 3> offsets = {
+			0,12,24
+		};
 		inline static const std::array<LocationInfo, 3> locations = {
-		LocationInfo(0, "vec3", "aPos", 0, 12),
-		LocationInfo(1, "vec3", "aNormal", 0, 12),
-		LocationInfo(2, "vec2", "aTexCoords", 0, 8)};
+			LocationInfo(0, "vec3", "aPos", 0, 12),
+			LocationInfo(1, "vec3", "aNormal", 0, 12),
+			LocationInfo(2, "vec2", "aTexCoords", 0, 8)
+		};
 	};
 	struct AttributeStructure_lightsource_vertex_trans{
 		glm::vec3 aPos;
 		glm::vec3 aNormal;
 		glm::vec2 aTexCoords;
-		inline static const std::array<size_t, 3> offsets = {0,12,24};
+		inline static const std::array<size_t, 3> offsets = {
+			0,12,24
+		};
 		inline static const std::array<LocationInfo, 3> locations = {
-		LocationInfo(0, "vec3", "aPos", 0, 12),
-		LocationInfo(1, "vec3", "aNormal", 0, 12),
-		LocationInfo(2, "vec2", "aTexCoords", 0, 8)};
+			LocationInfo(0, "vec3", "aPos", 0, 12),
+			LocationInfo(1, "vec3", "aNormal", 0, 12),
+			LocationInfo(2, "vec2", "aTexCoords", 0, 8)
+		};
 	};
 	struct AttributeStructure_light_vertex{
 		glm::vec3 aPos;
 		glm::vec3 aNormal;
 		glm::vec2 aTexCoords;
-		inline static const std::array<size_t, 3> offsets = {0,12,24};
+		inline static const std::array<size_t, 3> offsets = {
+			0,12,24
+		};
 		inline static const std::array<LocationInfo, 3> locations = {
-		LocationInfo(0, "vec3", "aPos", 0, 12),
-		LocationInfo(1, "vec3", "aNormal", 0, 12),
-		LocationInfo(2, "vec2", "aTexCoords", 0, 8)};
+			LocationInfo(0, "vec3", "aPos", 0, 12),
+			LocationInfo(1, "vec3", "aNormal", 0, 12),
+			LocationInfo(2, "vec2", "aTexCoords", 0, 8)
+		};
 	};
 	struct AttributeStructure_line_vertex{
 		glm::vec3 aPos;
-		inline static const std::array<size_t, 1> offsets = {0};
+		inline static const std::array<size_t, 1> offsets = {
+			0
+		};
 		inline static const std::array<LocationInfo, 1> locations = {
-		LocationInfo(0, "vec3", "aPos", 0, 12)};
+			LocationInfo(0, "vec3", "aPos", 0, 12)
+		};
 	};
 	struct AttributeStructure_shadow_vertex{
 		glm::vec3 aPos;
 		glm::vec3 aNormal;
 		glm::vec2 aTexCoords;
 		glm::mat4 instanceMatrix;
-		inline static const std::array<size_t, 4> offsets = {0,12,24,32};
+		inline static const std::array<size_t, 4> offsets = {
+			0,12,24,32
+		};
 		inline static const std::array<LocationInfo, 4> locations = {
-		LocationInfo(0, "vec3", "aPos", 0, 12),
-		LocationInfo(1, "vec3", "aNormal", 0, 12),
-		LocationInfo(2, "vec2", "aTexCoords", 0, 8),
-		LocationInfo(3, "mat4", "instanceMatrix", 0, 64)};
+			LocationInfo(0, "vec3", "aPos", 0, 12),
+			LocationInfo(1, "vec3", "aNormal", 0, 12),
+			LocationInfo(2, "vec2", "aTexCoords", 0, 8),
+			LocationInfo(3, "mat4", "instanceMatrix", 0, 64)
+		};
 	};
 
 	struct AttributeObject {
 		template<char const* str>
 		using Get = typename type_list<AttributeStructure_deferred_vertex,AttributeStructure_geometry_vertex,AttributeStructure_lightsource_vertex,AttributeStructure_lightsource_vertex_trans,AttributeStructure_light_vertex,AttributeStructure_line_vertex,AttributeStructure_shadow_vertex>::type<str>;
 	};
+
+	// ---------------------------- filenames ----------------------------
 
 	namespace file_names{
 		constexpr char deferred_frag[] = "shaders/deferred_frag.glsl";
@@ -157,46 +199,74 @@ namespace Binder {
 		constexpr char shadow_vertex[] = "shaders/shadow_vertex.glsl";
 	}
 
+	// ---------------------------- data structs ----------------------------
+
 	struct Attenuation{
-		Attenuation(String name)  :
-			aConstant{Uniform<float>("float", String(name + "." + "aConstant"), 0, 4)},
-			aLinear{Uniform<float>("float", String(name + "." + "aLinear"), 0, 4)},
-			aQuadratic{Uniform<float>("float", String(name + "." + "aQuadratic"), 0, 4)}
+		Attenuation(String name) :
+			aConstant{ Uniform<float>("float", String(name + "." + "aConstant"), 0, 4) },
+			aLinear{ Uniform<float>("float", String(name + "." + "aLinear"), 0, 4) },
+			aQuadratic{ Uniform<float>("float", String(name + "." + "aQuadratic"), 0, 4) }
 		{}
 
-			Uniform<float> aConstant;
-			Uniform<float> aLinear;
-			Uniform<float> aQuadratic;
+		inline static const size_t size = 12;
+
+		Uniform<float> aConstant;
+		Uniform<float> aLinear;
+		Uniform<float> aQuadratic;
 	};
 
 	struct BaseLight{
-		BaseLight(String name)  :
-			color{Uniform<glm::vec3>("vec3", String(name + "." + "color"), 0, 12)},
-			ambientIntensity{Uniform<float>("float", String(name + "." + "ambientIntensity"), 0, 4)},
-			diffuseIntensity{Uniform<float>("float", String(name + "." + "diffuseIntensity"), 0, 4)}
+		BaseLight(String name) :
+			color{ Uniform<glm::vec3>("vec3", String(name + "." + "color"), 0, 12) },
+			ambientIntensity{ Uniform<float>("float", String(name + "." + "ambientIntensity"), 0, 4) },
+			diffuseIntensity{ Uniform<float>("float", String(name + "." + "diffuseIntensity"), 0, 4) }
 		{}
 
-			Uniform<glm::vec3> color;
-			Uniform<float> ambientIntensity;
-			Uniform<float> diffuseIntensity;
+		inline static const size_t size = 20;
+
+		Uniform<glm::vec3> color;
+		Uniform<float> ambientIntensity;
+		Uniform<float> diffuseIntensity;
 	};
 
 	struct PointLight{
-		PointLight(String name)  :
-			light{BaseLight(String(name + "." + "light"))},
-			att{Attenuation(String(name + "." + "att"))},
-			position{Uniform<glm::vec3>("vec3", String(name + "." + "position"), 0, 12)}
+		PointLight(String name) :
+			light{ BaseLight(String(name + "." + "light")) },
+			att{ Attenuation(String(name + "." + "att")) },
+			position{ Uniform<glm::vec3>("vec3", String(name + "." + "position"), 0, 12) }
 		{}
 
-			BaseLight light;
-			Attenuation att;
-			Uniform<glm::vec3> position;
+		inline static const size_t size = 44;
+
+		BaseLight light;
+		Attenuation att;
+		Uniform<glm::vec3> position;
 	};
 
-struct deferred_frag {
-	struct locations{
+	struct ModelUnitData{
+		ModelUnitData(String name) :
+			xDelta{ Uniform<int>("int", String(name + "." + "xDelta"), 0, 4) },
+			yDelta{ Uniform<int>("int", String(name + "." + "yDelta"), 0, 4) },
+			wDelta{ Uniform<int>("int", String(name + "." + "wDelta"), 0, 4) },
+			hDelta{ Uniform<int>("int", String(name + "." + "hDelta"), 0, 4) },
+			layerDelta{ Uniform<int>("int", String(name + "." + "layerDelta"), 0, 4) }
+		{}
+
+		inline static const size_t size = 20;
+
+		Uniform<int> xDelta;
+		Uniform<int> yDelta;
+		Uniform<int> wDelta;
+		Uniform<int> hDelta;
+		Uniform<int> layerDelta;
+	};
+
+	// ---------------------------- shader file structures ----------------------------
+
+	struct deferred_frag {
+		struct locations {
 		};
-		struct uniforms{
+		struct uniforms {
 			 inline static Uniform<> gPosition{Uniform<>("sampler2D", String("gPosition"), 0, 0)};
 			 inline static Uniform<> gNormal{Uniform<>("sampler2D", String("gNormal"), 0, 0)};
 			 inline static Uniform<> gColor{Uniform<>("sampler2D", String("gColor"), 0, 0)};
@@ -207,128 +277,135 @@ struct deferred_frag {
 		};
 	};
 
-struct deferred_vertex {
-	struct locations{
+	struct deferred_vertex {
+		struct locations {
 			inline static Location<glm::vec3> aPos{Location <glm::vec3>(0, "vec3", "aPos", 0, 12)};
 			inline static Location<glm::vec2> aTexCoords{Location <glm::vec2>(2, "vec2", "aTexCoords", 0, 8)};
 		};
-		struct uniforms{
+		struct uniforms {
 		};
 	};
 
-struct geometry_frag {
-	struct locations{
+	struct geometry_frag {
+		struct locations {
 		};
-		struct uniforms{
-			 inline static Uniform<> diffuse1{Uniform<>("sampler2D", String("diffuse1"), 0, 0)};
+		struct uniforms {
+			 inline static Uniform<> textureLib{Uniform<>("sampler2DArray", String("textureLib"), 0, 0)};
+			 inline static Uniform<int> modelNumber{Uniform<int>("int", String("modelNumber"), 0, 4)};
 		};
+		struct buffers {
+			inline static UniformBufferInfo ModelUnitTables{ 1, 120, "ModelUnitTables" };
+		};
+
 	};
 
-struct geometry_vertex {
-	struct locations{
-			inline static Location<glm::vec3> aPos{Location <glm::vec3>(0, "vec3", "aPos", 0, 12)};
-			inline static Location<glm::vec3> aNormal{Location <glm::vec3>(1, "vec3", "aNormal", 0, 12)};
-			inline static Location<glm::vec2> aTexCoords{Location <glm::vec2>(2, "vec2", "aTexCoords", 0, 8)};
-		};
-		struct uniforms{
-			 inline static Uniform<glm::mat4> view{Uniform<glm::mat4>("mat4", String("view"), 0, 64)};
-			 inline static Uniform<glm::mat4> projection{Uniform<glm::mat4>("mat4", String("projection"), 0, 64)};
-			 inline static Uniform<glm::mat4> normal{Uniform<glm::mat4>("mat4", String("normal"), 0, 64)};
-			 inline static Uniform<glm::mat4> model{Uniform<glm::mat4>("mat4", String("model"), 0, 64)};
-		};
-	};
-
-struct lightsource_frag {
-	struct locations{
-		};
-		struct uniforms{
-			 inline static Uniform<> diffuse1{Uniform<>("sampler2D", String("diffuse1"), 0, 0)};
-		};
-	};
-
-struct lightsource_frag_trans {
-	struct locations{
-		};
-		struct uniforms{
-			 inline static Uniform<> diffuse1{Uniform<>("sampler2D", String("diffuse1"), 0, 0)};
-		};
-	};
-
-struct lightsource_vertex {
-	struct locations{
+	struct geometry_vertex {
+		struct locations {
 			inline static Location<glm::vec3> aPos{Location <glm::vec3>(0, "vec3", "aPos", 0, 12)};
 			inline static Location<glm::vec3> aNormal{Location <glm::vec3>(1, "vec3", "aNormal", 0, 12)};
 			inline static Location<glm::vec2> aTexCoords{Location <glm::vec2>(2, "vec2", "aTexCoords", 0, 8)};
+			inline static Location<glm::vec3> aTangent{Location <glm::vec3>(3, "vec3", "aTangent", 0, 12)};
+			inline static Location<glm::vec3> aBitangent{Location <glm::vec3>(4, "vec3", "aBitangent", 0, 12)};
 		};
-		struct uniforms{
+		struct uniforms {
 			 inline static Uniform<glm::mat4> model{Uniform<glm::mat4>("mat4", String("model"), 0, 64)};
-			 inline static Uniform<glm::mat4> view{Uniform<glm::mat4>("mat4", String("view"), 0, 64)};
-			 inline static Uniform<glm::mat4> projection{Uniform<glm::mat4>("mat4", String("projection"), 0, 64)};
-		};
-	};
-
-struct lightsource_vertex_trans {
-	struct locations{
-			inline static Location<glm::vec3> aPos{Location <glm::vec3>(0, "vec3", "aPos", 0, 12)};
-			inline static Location<glm::vec3> aNormal{Location <glm::vec3>(1, "vec3", "aNormal", 0, 12)};
-			inline static Location<glm::vec2> aTexCoords{Location <glm::vec2>(2, "vec2", "aTexCoords", 0, 8)};
-		};
-		struct uniforms{
-			 inline static Uniform<glm::mat4> model{Uniform<glm::mat4>("mat4", String("model"), 0, 64)};
-			 inline static Uniform<glm::mat4> view{Uniform<glm::mat4>("mat4", String("view"), 0, 64)};
-			 inline static Uniform<glm::mat4> projection{Uniform<glm::mat4>("mat4", String("projection"), 0, 64)};
-		};
-	};
-
-struct light_vertex {
-	struct locations{
-			inline static Location<glm::vec3> aPos{Location <glm::vec3>(0, "vec3", "aPos", 0, 12)};
-			inline static Location<glm::vec3> aNormal{Location <glm::vec3>(1, "vec3", "aNormal", 0, 12)};
-			inline static Location<glm::vec2> aTexCoords{Location <glm::vec2>(2, "vec2", "aTexCoords", 0, 8)};
-		};
-		struct uniforms{
-			 inline static Uniform<glm::mat4> model{Uniform<glm::mat4>("mat4", String("model"), 0, 64)};
-			 inline static Uniform<glm::mat4> view{Uniform<glm::mat4>("mat4", String("view"), 0, 64)};
+			 inline static Uniform<glm::mat4> modelView{Uniform<glm::mat4>("mat4", String("modelView"), 0, 64)};
 			 inline static Uniform<glm::mat4> projection{Uniform<glm::mat4>("mat4", String("projection"), 0, 64)};
 			 inline static Uniform<glm::mat4> normal{Uniform<glm::mat4>("mat4", String("normal"), 0, 64)};
 		};
 	};
 
-struct line_frag {
-	struct locations{
+	struct lightsource_frag {
+		struct locations {
 		};
-		struct uniforms{
+		struct uniforms {
+			 inline static Uniform<> diffuse1{Uniform<>("sampler2D", String("diffuse1"), 0, 0)};
+		};
+	};
+
+	struct lightsource_frag_trans {
+		struct locations {
+		};
+		struct uniforms {
+			 inline static Uniform<> diffuse1{Uniform<>("sampler2D", String("diffuse1"), 0, 0)};
+		};
+	};
+
+	struct lightsource_vertex {
+		struct locations {
+			inline static Location<glm::vec3> aPos{Location <glm::vec3>(0, "vec3", "aPos", 0, 12)};
+			inline static Location<glm::vec3> aNormal{Location <glm::vec3>(1, "vec3", "aNormal", 0, 12)};
+			inline static Location<glm::vec2> aTexCoords{Location <glm::vec2>(2, "vec2", "aTexCoords", 0, 8)};
+		};
+		struct uniforms {
+			 inline static Uniform<glm::mat4> model{Uniform<glm::mat4>("mat4", String("model"), 0, 64)};
+			 inline static Uniform<glm::mat4> view{Uniform<glm::mat4>("mat4", String("view"), 0, 64)};
+			 inline static Uniform<glm::mat4> projection{Uniform<glm::mat4>("mat4", String("projection"), 0, 64)};
+		};
+	};
+
+	struct lightsource_vertex_trans {
+		struct locations {
+			inline static Location<glm::vec3> aPos{Location <glm::vec3>(0, "vec3", "aPos", 0, 12)};
+			inline static Location<glm::vec3> aNormal{Location <glm::vec3>(1, "vec3", "aNormal", 0, 12)};
+			inline static Location<glm::vec2> aTexCoords{Location <glm::vec2>(2, "vec2", "aTexCoords", 0, 8)};
+		};
+		struct uniforms {
+			 inline static Uniform<glm::mat4> model{Uniform<glm::mat4>("mat4", String("model"), 0, 64)};
+			 inline static Uniform<glm::mat4> view{Uniform<glm::mat4>("mat4", String("view"), 0, 64)};
+			 inline static Uniform<glm::mat4> projection{Uniform<glm::mat4>("mat4", String("projection"), 0, 64)};
+		};
+	};
+
+	struct light_vertex {
+		struct locations {
+			inline static Location<glm::vec3> aPos{Location <glm::vec3>(0, "vec3", "aPos", 0, 12)};
+			inline static Location<glm::vec3> aNormal{Location <glm::vec3>(1, "vec3", "aNormal", 0, 12)};
+			inline static Location<glm::vec2> aTexCoords{Location <glm::vec2>(2, "vec2", "aTexCoords", 0, 8)};
+		};
+		struct uniforms {
+			 inline static Uniform<glm::mat4> model{Uniform<glm::mat4>("mat4", String("model"), 0, 64)};
+			 inline static Uniform<glm::mat4> view{Uniform<glm::mat4>("mat4", String("view"), 0, 64)};
+			 inline static Uniform<glm::mat4> projection{Uniform<glm::mat4>("mat4", String("projection"), 0, 64)};
+			 inline static Uniform<glm::mat4> normal{Uniform<glm::mat4>("mat4", String("normal"), 0, 64)};
+		};
+	};
+
+	struct line_frag {
+		struct locations {
+		};
+		struct uniforms {
 			 inline static Uniform<glm::vec4> color{Uniform<glm::vec4>("vec4", String("color"), 0, 16)};
 		};
 	};
 
-struct line_vertex {
-	struct locations{
+	struct line_vertex {
+		struct locations {
 			inline static Location<glm::vec3> aPos{Location <glm::vec3>(0, "vec3", "aPos", 0, 12)};
 		};
-		struct uniforms{
+		struct uniforms {
 			 inline static Uniform<glm::mat4> model{Uniform<glm::mat4>("mat4", String("model"), 0, 64)};
 			 inline static Uniform<glm::mat4> view{Uniform<glm::mat4>("mat4", String("view"), 0, 64)};
 			 inline static Uniform<glm::mat4> projection{Uniform<glm::mat4>("mat4", String("projection"), 0, 64)};
 		};
 	};
 
-struct shadow_frag {
-	struct locations{
+	struct shadow_frag {
+		struct locations {
 		};
-		struct uniforms{
+		struct uniforms {
 			 inline static Uniform<> shadowMap{Uniform<>("sampler2D", String("shadowMap"), 0, 0)};
 		};
 	};
 
-struct shadow_vertex {
-	struct locations{
+	struct shadow_vertex {
+		struct locations {
 			inline static Location<glm::vec3> aPos{Location <glm::vec3>(0, "vec3", "aPos", 0, 12)};
 			inline static Location<glm::vec3> aNormal{Location <glm::vec3>(1, "vec3", "aNormal", 0, 12)};
 			inline static Location<glm::vec2> aTexCoords{Location <glm::vec2>(2, "vec2", "aTexCoords", 0, 8)};
 			inline static Location<glm::mat4> instanceMatrix{Location <glm::mat4>(3, "mat4", "instanceMatrix", 0, 64)};
 		};
-		struct uniforms{
+		struct uniforms {
 			 inline static Uniform<glm::mat4> view{Uniform<glm::mat4>("mat4", String("view"), 0, 64)};
 			 inline static Uniform<glm::mat4> projection{Uniform<glm::mat4>("mat4", String("projection"), 0, 64)};
 		};

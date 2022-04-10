@@ -19,7 +19,7 @@
 
 //typedef std::vector<std::pair<std::string, std::pair<std::pair<std::string, std::vector<std::string>>, std::pair<std::string, std::vector<std::string>>>>> GLSLBinderDataStructure;
 
-typedef std::array<std::string, 5> GLSLVariable;
+typedef std::array<std::string, 6> GLSLVariable;
 
 /*
 struct GLSLVariable {
@@ -29,30 +29,35 @@ struct GLSLVariable {
 	std::string size;
 	std::string type;
 	std::string array;
+	std::string binding;
 };
 */
 
 
-struct GLSLVariables {
+struct GLSLBlock {
 public:
-	GLSLVariables() {}
-	GLSLVariables(const GLSLVariables& other) : typeName(other.typeName), variables(other.variables), name(other.name) {}
-	GLSLVariables(const GLSLVariables&& other) : typeName(other.typeName), variables(other.variables), name(other.name) {
+	GLSLBlock() {}
+	GLSLBlock(std::string typeName) : typeName(typeName) {}
+	GLSLBlock(std::string typeName, int binding) : typeName(typeName), binding(binding) {}
+	GLSLBlock(const GLSLBlock& other) noexcept : typeName(other.typeName), variables(other.variables), name(other.name), binding(other.binding), size(other.size) {}
+	GLSLBlock(const GLSLBlock&& other) noexcept : typeName(other.typeName), variables(other.variables), name(other.name), binding(other.binding), size(other.size) {
 		deepCopy(*this, other);
 	}
-	void deepCopy(GLSLVariables& current, const GLSLVariables& other) {
+	void deepCopy(GLSLBlock& current, const GLSLBlock& other) {
 		for (size_t i = 0; i < other.structure.size(); i++) {
-			current.structure.emplace_back(new GLSLVariables(*other.structure[i]));
+			current.structure.emplace_back(new GLSLBlock(*other.structure[i]));
 			deepCopy(*this->structure.back(), *other.structure[i]);
 		}
 	}
-	
-	//GLSLVariables& operator=(GLSLVariables& other) {}
-	GLSLVariables(std::string typeName) : typeName(typeName) {}
+	//GLSLBlock& operator=(GLSLBlock& other) {}
+
 	std::string typeName;
 	std::string name;
+	int binding = -1;
+	size_t size = 0;
+
 	std::vector<GLSLVariable> variables;
-	std::vector<std::unique_ptr<GLSLVariables>> structure;
+	std::vector<std::unique_ptr<GLSLBlock>> structure;
 };
 
 std::unordered_map<std::string, std::string> constToValue;
@@ -158,13 +163,16 @@ const std::unordered_map<std::string, size_t> GLSLTypeSize = {
 
 };
 
+std::unordered_map<std::string, size_t> StructSizeByName;
+
 struct GLSLBinderData {
 	GLSLBinderData() : uni("uniform"), loc("location") {}
-	GLSLBinderData(const GLSLBinderData&& other) : uni(std::move(other.uni)), loc(std::move(other.loc)), fileName(other.fileName), filePath(other.filePath) {}
+	GLSLBinderData(const GLSLBinderData&& other) : uni(std::move(other.uni)), loc(std::move(other.loc)), buf(other.buf), fileName(other.fileName), filePath(other.filePath) {}
 	std::string fileName;
 	std::string filePath;
-	GLSLVariables uni;
-	GLSLVariables loc;
+	GLSLBlock uni;
+	GLSLBlock loc;
+	std::vector<GLSLBlock> buf;
 };
 
 struct GLSLBinderDataStructure : public std::vector<GLSLBinderData> {
@@ -179,6 +187,7 @@ struct ShaderCodeTypes {
 namespace ShaderCodeRegex {
 	inline const std::regex UNIFORM_STRUCT_VARIABLES("(\\w+)\\s+(\\w+)\\[?([0-9]*?)\\]?\\s*;");
 	inline const std::regex UNIFORM_STRUCT("struct\\s+(\\w+)\\s*\\{([\\w\\W]*?(?=\\};))");
+	inline const std::regex UNIFORM_BUFFER("layout\\s*\\(\\s*[\\w]*\\s*,\\s*binding\\s*=\\s*(\\d+)\\s*\\)\\s+uniform\\s+(\\w+)\\s*\\n*\\{([\\w\\W]*?(?=\\};))");
 	inline const std::regex LOCATION("layout\\s*\\(\\s*location\\s*=\\s*(\\d+)\\s*\\)\\s+in\\s+(\\w+)\\s+(\\w+)\\[?([0-9]*?)\\]?\\s*;");
 	inline const std::regex UNIFORM("uniform\\s+(\\w+)\\s+(\\w+)\\[?(\\w+)?\\]?;");
 	inline const std::regex SET_VARIABLE("(\\w+)\\s?=\\s?(\\d+);");
@@ -190,20 +199,22 @@ enum class ATT_INFO {
 	TYPE,
 	NAME,
 	ARRAY,
-	SIZE
+	SIZE,
+	BINDING
 };
 
 enum class UNI_INFO {
 	TYPE,
 	NAME,
 	ARRAY,
-	SIZE
+	SIZE,
+	BINDING
 };
 
 
 template<class INFO_TYPE>
-std::vector<GLSLVariable> getVariableInfo(std::string shaderCode, std::regex regex) {
-
+std::vector<GLSLVariable> getVariableInfo(std::string shaderCode, std::regex regex, int binding = -1) {
+	// trim comments
 	shaderCode = std::regex_replace(shaderCode, std::regex("\\/\\/.+\\n"), "");
 	shaderCode = std::regex_replace(shaderCode, std::regex("\\/\\*[\\w\\W]+\\*\\/"), "");
 
@@ -230,8 +241,16 @@ std::vector<GLSLVariable> getVariableInfo(std::string shaderCode, std::regex reg
 			var[(size_t)INFO_TYPE::SIZE] = std::to_string(GLSLTypeIt->second);
 		}
 		else {
-			var[(size_t)INFO_TYPE::SIZE] = "0";
+			auto StructTypeIt = StructSizeByName.find(var[(size_t)INFO_TYPE::TYPE]);
+			if (StructTypeIt != StructSizeByName.end()) {
+				typeFound = true;
+				var[(size_t)INFO_TYPE::SIZE] = std::to_string(StructTypeIt->second);
+			} 
+			else {
+				var[(size_t)INFO_TYPE::SIZE] = "0";
+			}
 		}
+		var[(size_t)INFO_TYPE::BINDING] = std::to_string(binding);
 
 		shaderCode = matches.suffix();
 		variables.push_back(var);
@@ -254,31 +273,78 @@ void getConstantVariables(std::string shaderCode) {
 	}
 }
 
+//unused
+enum class STRUCT_INFO {
+	NAME,
+	BLOCK
+};
+//unused
+enum class UNIBUF_INFO {
+	//MEMORY_LAYOUT,
+	BINDING,
+	NAME,
+	BLOCK
+};
 
-std::vector<GLSLVariables> extractStructs(std::string& shaderCode) {
+std::vector<GLSLBlock> extractStructs(const std::regex& structRegex, const std::regex& variableRegex, std::string& shaderCode) {
 	
-	std::vector<GLSLVariables> result;
+	std::vector<GLSLBlock> result;
 	std::string code = shaderCode;
-	std::vector<std::string> structCode;
+	std::vector<std::string> blockCode;
 	std::smatch matches;
-	while (std::regex_search(code, matches, ShaderCodeRegex::UNIFORM_STRUCT)) {
-		GLSLVariables test(matches[1].str());
+	while (std::regex_search(code, matches, structRegex)) {
+		GLSLBlock test = GLSLBlock(matches[1].str());
 		result.push_back(test);
-		structCode.push_back(matches[2].str());
+		blockCode.push_back(matches[2].str());
 		code = matches.suffix();
 	}
 
-	for (size_t i = 0; i < structCode.size(); i++) {
-		result[i].variables = getVariableInfo<UNI_INFO>(structCode[i], ShaderCodeRegex::UNIFORM_STRUCT_VARIABLES);
-	}
-	shaderCode = std::regex_replace(shaderCode, ShaderCodeRegex::UNIFORM_STRUCT, "");
+	for (size_t i = 0; i < blockCode.size(); i++) {
+		result[i].variables = getVariableInfo<UNI_INFO>(blockCode[i], variableRegex, result[i].binding);
+		for (size_t j = 0; j < result[i].variables.size(); j++) {
+			int arrVal = std::stoi(result[i].variables[j][(size_t)UNI_INFO::ARRAY]);
+			result[i].size += (size_t)std::stoi(result[i].variables[j][(size_t)UNI_INFO::SIZE]) * (arrVal == 0 ? 1 : arrVal);
+		}
 
-	
+		StructSizeByName[result[i].typeName] = result[i].size;
+	}
+
+	shaderCode = std::regex_replace(shaderCode, structRegex, "");	
 	return result;
 }
 
+std::vector<GLSLBlock> extractUniformBuffers(const std::regex& structRegex, const std::regex& variableRegex, std::string& shaderCode) {
+	
+	std::vector<GLSLBlock> result;
+	std::string code = shaderCode;
+	std::vector<std::string> blockCode;
+	std::smatch matches;
+	while (std::regex_search(code, matches, structRegex)) {
+		GLSLBlock test = GLSLBlock(matches[2].str(), std::stoi(matches[1].str()));
+		result.push_back(test);
+		blockCode.push_back(matches[3].str());
+		code = matches.suffix();
+	}
 
-void expandHeaderStructs(std::fstream& GLSLBinderHeader, GLSLVariables& vars, size_t depth) {
+	for (size_t i = 0; i < blockCode.size(); i++) {
+		result[i].variables = getVariableInfo<UNI_INFO>(blockCode[i], variableRegex, result[i].binding);
+		for (size_t j = 0; j < result[i].variables.size(); j++) {
+			int arrVal = std::stoi(result[i].variables[j][(size_t)UNI_INFO::ARRAY]);
+			result[i].size += (size_t)std::stoi(result[i].variables[j][(size_t)UNI_INFO::SIZE]) * (arrVal == 0 ? 1 : arrVal);
+		}
+
+		StructSizeByName[result[i].typeName] = result[i].size;
+	}
+
+	for (size_t i = 1; i < result.size(); i++) {
+		result[0].size += result[i].size;
+	}
+
+	shaderCode = std::regex_replace(shaderCode, structRegex, "");	
+	return result;
+}
+
+void expandHeaderStructs(std::fstream& GLSLBinderHeader, GLSLBlock& vars, size_t depth) {
 	
 	GLSLBinderHeader << std::string(depth, '\t') << "struct " << vars.typeName << "{\n";
 	for (auto var : vars.variables) {
@@ -302,7 +368,7 @@ std::string removeExtension(std::string fileName) {
 	return noExtFile;
 }
 
-bool isUniform(std::vector<GLSLVariables> structs, GLSLVariable var) {
+bool isUniform(std::vector<GLSLBlock> structs, GLSLVariable var) {
 	bool isUniform = true;
 	for (auto& sTests : structs) {
 		if (var[(size_t)UNI_INFO::TYPE] == sTests.typeName) {
@@ -321,7 +387,7 @@ std::string getVariableName(GLSLVariable var) {
 	return varName;
 }
 
-std::string getVariableParameters(std::vector<GLSLVariables> structs, GLSLVariables s, GLSLVariable var, bool insideStruct = false){
+std::string getVariableParameters(std::vector<GLSLBlock> structs, GLSLBlock s, GLSLVariable var, bool insideStruct = false){
 	std::stringstream text;
 	bool isUniformVariable = isUniform(structs, var);
 	std::string varName = getVariableName(var);
@@ -365,7 +431,7 @@ std::string getVariableParameters(std::vector<GLSLVariables> structs, GLSLVariab
 	return text.str();
 }
 
-std::string getVariableLine(std::vector<GLSLVariables> structs, GLSLVariables s, GLSLVariable var) {
+std::string getVariableLine(std::vector<GLSLBlock> structs, GLSLBlock s, GLSLVariable var) {
 	std::stringstream text;
 	std::string varName = getVariableName(var);
 
@@ -390,7 +456,7 @@ std::string getVariableLine(std::vector<GLSLVariables> structs, GLSLVariables s,
 	return text.str();
 }
 
-void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLVariables> structs) {
+void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLBlock> structs) {
 	std::fstream GLSLBinderHeader("GLSLCPPBinder.h", std::fstream::in | std::fstream::out | std::ofstream::trunc);
 
 	std::stringstream sstream;
@@ -417,6 +483,8 @@ void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLVariables
 	}
 
 	//String is probably a useless helper class now that uniform initializors are used
+	GLSLBinderHeader << "\t// ---------------------------- internal type declarations ----------------------------\n\n";
+
 	GLSLBinderHeader << "\tstruct String : public std::string {\n";
 	GLSLBinderHeader << "\t\tusing std::string::basic_string;\n";
 	GLSLBinderHeader << "\t\ttemplate<class E, class T, class A>\n";
@@ -442,7 +510,7 @@ void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLVariables
 	GLSLBinderHeader << "\ttemplate<class T = void>\n";
 	GLSLBinderHeader << "\tstruct Location : public LocationInfo {\n";
 	GLSLBinderHeader << "\t\tLocation(const GLuint loc, String type, String name, const size_t array, const GLint size) : LocationInfo(loc, type, name, array, size) {}\n";
-	GLSLBinderHeader << "\t\tusing type = T;";
+	GLSLBinderHeader << "\t\tusing type = T;\n";
 	GLSLBinderHeader << "\t};\n\n";
 
 	GLSLBinderHeader << "\tstruct UniformInfo {\n";
@@ -458,7 +526,15 @@ void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLVariables
 	GLSLBinderHeader << "\ttemplate<class T = void>\n";
 	GLSLBinderHeader << "\tstruct Uniform : public UniformInfo {\n";
 	GLSLBinderHeader << "\t\tUniform(String type, String name, const size_t array, const GLint size) : UniformInfo(type, name, array, size) {}\n";
-	GLSLBinderHeader << "\t\tusing type = T;";
+	GLSLBinderHeader << "\t\tusing type = T;\n";
+	GLSLBinderHeader << "\t};\n\n";
+
+	GLSLBinderHeader << "\tstruct UniformBufferInfo {\n";
+	GLSLBinderHeader << "\t\tUniformBufferInfo() : binding(-1), size(-1), name() {}\n";
+	GLSLBinderHeader << "\t\tUniformBufferInfo(const size_t binding, const size_t size, String name) : binding(binding), size(size), name(name) {}\n";
+	GLSLBinderHeader << "\t\tconst size_t binding;\n";
+	GLSLBinderHeader << "\t\tconst size_t size;\n";
+	GLSLBinderHeader << "\t\tString name;\n";
 	GLSLBinderHeader << "\t};\n\n";
 
 	GLSLBinderHeader << strings_equal << "\n";
@@ -478,7 +554,9 @@ void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLVariables
 	}
 	GLSLBinderHeader << "\t};\n\n";
 	
-	GLSLBinderHeader << type_list << "\n";
+	GLSLBinderHeader << type_list << "\n\n";
+
+	GLSLBinderHeader << "\t// ---------------------------- shader file attribute objects ----------------------------\n\n";
 
 	for (auto& file : variables) {
 		if (file.loc.variables.size() != 0) {
@@ -493,23 +571,23 @@ void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLVariables
 			}
 
 			
-			GLSLBinderHeader << "\t\tinline static const std::array<size_t, " << file.loc.variables.size() << "> offsets = {";
+			GLSLBinderHeader << "\t\tinline static const std::array<size_t, " << file.loc.variables.size() << "> offsets = {\n\t\t\t";
 			for (size_t i = 0; i < varLocations.size(); i++) {
 				GLSLBinderHeader << varLocations[i];
 				if (i + 1 < varLocations.size()) {
 					GLSLBinderHeader << ",";
 				}
 			}
-			GLSLBinderHeader << "};\n";
+			GLSLBinderHeader << "\n\t\t};\n";
 			
 			GLSLBinderHeader << "\t\tinline static const std::array<LocationInfo, " << file.loc.variables.size() << "> locations = {\n";
 			for (size_t i = 0; i < file.loc.variables.size(); i++) {
-				GLSLBinderHeader << "\t\tLocationInfo(" << file.loc.variables[i][(size_t)ATT_INFO::LOCATION] << ", \"" << file.loc.variables[i][(size_t)ATT_INFO::TYPE] << "\", \"" << file.loc.variables[i][(size_t)ATT_INFO::NAME] << "\", " << file.loc.variables[i][(size_t)ATT_INFO::ARRAY] << ", " << file.loc.variables[i][(size_t)ATT_INFO::SIZE] << ")";
+				GLSLBinderHeader << "\t\t\tLocationInfo(" << file.loc.variables[i][(size_t)ATT_INFO::LOCATION] << ", \"" << file.loc.variables[i][(size_t)ATT_INFO::TYPE] << "\", \"" << file.loc.variables[i][(size_t)ATT_INFO::NAME] << "\", " << file.loc.variables[i][(size_t)ATT_INFO::ARRAY] << ", " << file.loc.variables[i][(size_t)ATT_INFO::SIZE] << ")";
 				if (i + 1 < file.loc.variables.size()) {
 					GLSLBinderHeader << ",\n";
 				}
 			}
-			GLSLBinderHeader << "};\n";
+			GLSLBinderHeader << "\n\t\t};\n";
 
 			GLSLBinderHeader << "\t};\n";
 		}
@@ -535,6 +613,8 @@ void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLVariables
 	GLSLBinderHeader << ">::type<str>;\n";
 	GLSLBinderHeader << "\t};\n\n";
 
+	GLSLBinderHeader << "\t// ---------------------------- filenames ----------------------------\n\n";
+
 	GLSLBinderHeader << "\tnamespace file_names{\n";
 	for (auto& file : variables) {
 		std::string noExtFile = removeExtension(file.fileName);
@@ -542,9 +622,11 @@ void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLVariables
 	}
 	GLSLBinderHeader << "\t}\n\n";
 
+	GLSLBinderHeader << "\t// ---------------------------- data structs ----------------------------\n\n";
+
 	for (auto& s : structs) {
 		GLSLBinderHeader << "\tstruct " << s.typeName << "{\n";
-		GLSLBinderHeader << "\t\t" << s.typeName << "(String name) ";
+		GLSLBinderHeader << "\t\t" << s.typeName << "(String name)";
 		std::stringstream memberInit;
 		bool isFirstMember = true;
 
@@ -554,22 +636,27 @@ void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLVariables
 				memberInit << " :\n";
 			}
 			if(isUniform(structs, s.variables[i])){
-				memberInit << "\t\t\t" << s.variables[i][(size_t)UNI_INFO::NAME] << "{" << getVariableParameters(structs, s, s.variables[i], true) << "}";
+				memberInit << "\t\t\t" << s.variables[i][(size_t)UNI_INFO::NAME] << "{ " << getVariableParameters(structs, s, s.variables[i], true) << " }";
 			}
 			else {
-				memberInit << "\t\t\t" << s.variables[i][(size_t)UNI_INFO::NAME] << "{" << getVariableParameters(structs, s, s.variables[i], true) << "}";
+				memberInit << "\t\t\t" << s.variables[i][(size_t)UNI_INFO::NAME] << "{ " << getVariableParameters(structs, s, s.variables[i], true) << " }";
 			}
 			if(i != s.variables.size() - 1){
 				memberInit << ",\n";
 			}
 		}
 		GLSLBinderHeader << memberInit.str() << "\n\t\t{}\n\n";
+		GLSLBinderHeader << "\t\tinline static const size_t size = " << s.size << ";\n\n";
+
 		for (auto& var : s.variables) {
-			GLSLBinderHeader << "\t\t\t" << getVariableLine(structs, s, var);
+			GLSLBinderHeader << "\t\t" << getVariableLine(structs, s, var);
 			GLSLBinderHeader << ";\n";
 		}
+
 		GLSLBinderHeader << "\t};\n\n";
 	}
+
+	GLSLBinderHeader << "\t// ---------------------------- shader file structures ----------------------------\n\n";
 
 	std::string uniformList;
 	std::string inList;
@@ -577,14 +664,14 @@ void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLVariables
 
 		std::string noExtFile = removeExtension(file.fileName);
 
-		GLSLBinderHeader << "struct " << noExtFile << " {\n";
-		GLSLBinderHeader << "\tstruct " << file.loc.typeName << "s" << "{\n";
+		GLSLBinderHeader << "\tstruct " << noExtFile << " {\n";
+		GLSLBinderHeader << "\t\tstruct " << file.loc.typeName << "s" << " {\n";
 		for (auto var : file.loc.variables) {
 			GLSLBinderHeader << "\t\t\tinline static Location<" + GLSLTypeToCPP.find(var[(size_t)ATT_INFO::TYPE])->second + "> " + var[(size_t)ATT_INFO::NAME] + "{" + "Location <" + GLSLTypeToCPP.find(var[(size_t)ATT_INFO::TYPE])->second + ">(" + var[(size_t)ATT_INFO::LOCATION] + ", \"" + var[(size_t)ATT_INFO::TYPE] + "\", \"" + var[(size_t)ATT_INFO::NAME] + "\", " + var[(size_t)ATT_INFO::ARRAY] + ", " + var[(size_t)ATT_INFO::SIZE] + ")};\n";
 		}//Fix order how uniforms and locs are passed<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 		GLSLBinderHeader << "\t\t};\n";
 
-		GLSLBinderHeader << "\t\tstruct " << file.uni.typeName << "s" << "{\n";
+		GLSLBinderHeader << "\t\tstruct " << file.uni.typeName << "s" << " {\n";
 		size_t type = (size_t)UNI_INFO::TYPE;
 		for (auto var : file.uni.variables) {
 			GLSLBinderHeader << "\t\t\t inline static " << getVariableLine(structs, file.uni, var);
@@ -597,42 +684,28 @@ void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLVariables
 				expandHeaderStructs(GLSLBinderHeader, (*vars), 3);
 			}
 		}
-
 		GLSLBinderHeader << "\t\t};\n";
+
+		if (file.buf.size() > 0) {
+			GLSLBinderHeader << "\t\tstruct buffers {\n";
+			for (auto& buffers : file.buf) {
+				GLSLBinderHeader << "\t\t\tinline static UniformBufferInfo " << buffers.typeName << "{ " << buffers.binding << ", " << buffers.size << ", \"" << buffers.typeName << "\" };\n";
+			}
+			GLSLBinderHeader << "\t\t};\n\n";
+		}
 		GLSLBinderHeader << "\t};\n\n";
 	}
 	GLSLBinderHeader << "};";
 };
 
-void deepCopy(GLSLVariables& vars, const GLSLVariables& otherVars) {
-	vars.structure.emplace_back(std::unique_ptr<GLSLVariables>(new GLSLVariables(otherVars)));
+void deepCopy(GLSLBlock& vars, const GLSLBlock& otherVars) {
+	vars.structure.emplace_back(std::unique_ptr<GLSLBlock>(new GLSLBlock(otherVars)));
 	for (size_t i = 0; i < otherVars.structure.size(); i++) {
 		deepCopy(*vars.structure.back(), *otherVars.structure[i]);
 	}
 }
 
 
-template<class INFO_TYPE>
-void insertStructsTypes(std::vector<GLSLVariables> structs, GLSLVariables& variables) {
-	bool skipIncrement = false;
-	for (std::vector<GLSLVariable>::iterator it = variables.variables.begin(); it != variables.variables.end(); ) {
-		for (GLSLVariables s : structs) {
-			if (it->at((size_t)INFO_TYPE::TYPE) == s.typeName) {
-				variables.structure.emplace_back(std::unique_ptr<GLSLVariables>(new GLSLVariables(s)));
-				//variables.structure.back()->typeName = it->at((size_t)INFO_TYPE::NAME);
-				variables.structure.back()->name = /*(variables.name == "" ? "" : variables.name + ".") +*/ it->at((size_t)INFO_TYPE::NAME);
-				insertStructsTypes<INFO_TYPE>(structs, *variables.structure.back());
-				it = variables.variables.erase(it);
-				skipIncrement = true;
-				break;
-			}
-		}
-		if (!skipIncrement) {
-			it++;
-		}
-		skipIncrement = false;
-	}
-}
 /*
 constexpr unsigned int get_map_value(char const* a){
 	if (strings_equal("float", a)) { return 0; }
@@ -710,7 +783,7 @@ int WinMain() {
 
 	
 	GLSLBinderDataStructure variables;
-	std::vector<GLSLVariables> structs;
+	std::vector<GLSLBlock> structs;
 	
 	for (std::string filePath : filePaths) {
 		std::ifstream shaderFile(filePath);
@@ -734,12 +807,14 @@ int WinMain() {
 		std::string shaderCode = converter.str();
 			
 		getConstantVariables(shaderCode);
-		auto extractedStructs = extractStructs(shaderCode);
+		auto extractedStructs = extractStructs(ShaderCodeRegex::UNIFORM_STRUCT, ShaderCodeRegex::UNIFORM_STRUCT_VARIABLES, shaderCode);
+		auto extractedBuffers = extractUniformBuffers(ShaderCodeRegex::UNIFORM_BUFFER, ShaderCodeRegex::UNIFORM, shaderCode);
+
 		//structs.insert(structs.end(), extractedStructs.begin(), extractedStructs.end());
 		std::copy(extractedStructs.begin(), extractedStructs.end(), std::back_inserter(structs));
 		data.loc.variables = getVariableInfo<ATT_INFO>(shaderCode, ShaderCodeRegex::LOCATION);
 		data.uni.variables = getVariableInfo<UNI_INFO>(shaderCode, ShaderCodeRegex::UNIFORM);
-		//insertStructsTypes<UNI_INFO>(structs, data.uni);
+		std::copy(extractedBuffers.begin(), extractedBuffers.end(), std::back_inserter(data.buf));
 		variables.push_back(std::move(data));
 
 		if (CONFIG::GENERATE_LOG)

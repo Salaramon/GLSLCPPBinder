@@ -6,10 +6,10 @@ Shader_Folders = ["shaders"]
 Shader_File_Extension = "glsl"
 
 hader_Files = [ 
-"deferred_frag.glsl", 
-"deferred_vertex.glsl", 
 "geometry_frag.glsl", 
 "geometry_vertex.glsl", 
+"deferred_frag.glsl", 
+"deferred_vertex.glsl", 
 "lightsource_frag.glsl", 
 "lightsource_vertex.glsl", 
 "lightsource_frag_trans.glsl", 
