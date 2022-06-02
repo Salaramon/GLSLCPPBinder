@@ -4,6 +4,7 @@ Generate_Log = true
 
 Shader_Folders = ["shaders"]
 Shader_File_Extension = "glsl"
+Output_Path = "binder"
 
 hader_Files = [ 
 "geometry_frag.glsl", 

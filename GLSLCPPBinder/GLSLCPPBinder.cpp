@@ -456,8 +456,10 @@ std::string getVariableLine(std::vector<GLSLBlock> structs, GLSLBlock s, GLSLVar
 	return text.str();
 }
 
-void generateHeader(GLSLBinderDataStructure variables, std::vector<GLSLBlock> structs) {
-	std::fstream GLSLBinderHeader("GLSLCPPBinder.h", std::fstream::in | std::fstream::out | std::ofstream::trunc);
+void generateHeader(std::string outputPath, GLSLBinderDataStructure variables, std::vector<GLSLBlock> structs) {
+	if (!std::filesystem::exists(CONFIG::OUTPUT_PATH))
+		std::filesystem::create_directory(CONFIG::OUTPUT_PATH);
+	std::fstream GLSLBinderHeader(outputPath, std::fstream::in | std::fstream::out | std::ofstream::trunc);
 
 	std::stringstream sstream;
 	sstream << GLSLBinderHeader.rdbuf();
@@ -752,7 +754,7 @@ int WinMain() {
 	}
 
 	if (CONFIG::GENERATE_LOG) {
-		REPORT::LOG.open(FILES::LOG);
+		REPORT::LOG.open(FILES::LOG, std::ios::app);
 		REPORT::LOG << "Running binder at " << std::chrono::system_clock::now() << std::endl;
 	}
 
@@ -821,8 +823,13 @@ int WinMain() {
 			REPORT::LOG << "Made binder for: " << filePath << std::endl;
 	}
 	
-	generateHeader(std::move(variables), structs);
-	REPORT::LOG.close();
+	std::string outputPath = std::string(CONFIG::OUTPUT_PATH) + "/GLSLCPPBinder.h";
+	generateHeader(outputPath, std::move(variables), structs);
+
+	if (CONFIG::GENERATE_LOG) {
+		REPORT::LOG << "Output to path: " << outputPath;
+		REPORT::LOG.close();
+	}
 
 	return 0;
 }

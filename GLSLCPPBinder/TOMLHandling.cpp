@@ -1,4 +1,4 @@
-#include "TOMLHandling.h"
+﻿#include "TOMLHandling.h"
 
 
 
@@ -62,31 +62,32 @@ bool readTOMLConfig(toml::table& tomlFileReference, std::string tomlConfigPath) 
 		}
 	}
 
-	auto genLogKeyResult = readTOMLKey(tomlFileReference, CONFIG_KEYS::GENERATE_LOG, CONFIG::GENERATE_LOG);
-
 	if (CONFIG::GENERATE_LOG) {
-		REPORT::LOG.open(FILES::LOG);
-		REPORT::LOG << startupMessage.rdbuf()->str();
-		if (genLogKeyResult.first)
-			REPORT::LOG << genLogKeyResult.second;
+		REPORT::LOG.open(FILES::LOG, std::ios::trunc);
+		if (startupMessage.rdbuf()->str().length() > 0)
+			REPORT::LOG << startupMessage.rdbuf()->str();
 	}
 
-	auto errHaltKeyResult = readTOMLKey(tomlFileReference, CONFIG_KEYS::HALT_ON_ERROR, CONFIG::HALT_ON_ERROR);
-	if (errHaltKeyResult.first && CONFIG::GENERATE_LOG) {
-		REPORT::LOG << errHaltKeyResult.second;
-	}
+	auto errResult = readTOMLKey(tomlFileReference, CONFIG_KEYS::GENERATE_LOG, CONFIG::GENERATE_LOG);
+	if (errResult.first && CONFIG::GENERATE_LOG)
+		REPORT::LOG << errResult.second;
 
-	auto errGLMKeyResult = readTOMLKey(tomlFileReference, CONFIG_KEYS::GLM_INCLUDE, CONFIG::GLM_INCLUDE);
-	if (errGLMKeyResult.first && CONFIG::GENERATE_LOG) {
-		REPORT::LOG << errGLMKeyResult.second;
-	}
+	errResult = readTOMLKey(tomlFileReference, CONFIG_KEYS::HALT_ON_ERROR, CONFIG::HALT_ON_ERROR);
+	if (errResult.first && CONFIG::GENERATE_LOG)
+		REPORT::LOG << errResult.second;
 
-	auto errExtensionKeyResult = readTOMLKey(tomlFileReference, CONFIG_KEYS::SHADER_FILE_EXTENSION, CONFIG::SHADER_FILE_EXTENSION);
-	if (errExtensionKeyResult.first && CONFIG::GENERATE_LOG) {
-		REPORT::LOG << errGLMKeyResult.second;
-	}
+	errResult = readTOMLKey(tomlFileReference, CONFIG_KEYS::GLM_INCLUDE, CONFIG::GLM_INCLUDE);
+	if (errResult.first && CONFIG::GENERATE_LOG)
+		REPORT::LOG << errResult.second;
+
+	errResult = readTOMLKey(tomlFileReference, CONFIG_KEYS::SHADER_FILE_EXTENSION, CONFIG::SHADER_FILE_EXTENSION);
+	if (errResult.first && CONFIG::GENERATE_LOG)
+		REPORT::LOG << errResult.second;
+
+	errResult = readTOMLKey(tomlFileReference, CONFIG_KEYS::OUTPUT_PATH, CONFIG::OUTPUT_PATH);
+	if (errResult.first && CONFIG::GENERATE_LOG)
+		REPORT::LOG << errResult.second;
 
 	REPORT::LOG.close();
 	return 0;
-
 }
